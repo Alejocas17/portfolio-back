@@ -1,17 +1,55 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:14
     container_name: postgres_portfolio
     environment:
-      POSTGRES_DB: portfolio
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db.sql:/docker-entrypoint-initdb.d/init.sql  
+    ports:
+      - "5432:5432"
+  
+  projects_service:
+    build:
+      context: ./projects_microservice
+    container_name: projects_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    working_dir: /app/projects_microservice
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_DB=projects_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_HOST=db
+    depends_on:
+      - db
+
+  links_service:
+    build:
+      context: ./links_microservice
+    container_name: links_service
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - .:/app
+    working_dir: /app/links_microservice
+    ports:
+      - "8001:8001"
+    environment:
+      - POSTGRES_DB=links_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_HOST=db
+    depends_on:
+      - db
 
 volumes:
   postgres_data:
+
+networks:
+  default:
+    name: portfolio_network
