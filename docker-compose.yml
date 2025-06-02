@@ -10,6 +10,8 @@ services:
       - ./db.sql:/docker-entrypoint-initdb.d/init.sql  
     ports:
       - "5432:5432"
+    networks:
+      - portfolio_network
   
   projects_service:
     build:
@@ -28,6 +30,8 @@ services:
       - POSTGRES_HOST=db
     depends_on:
       - db
+    networks:
+      - portfolio_network
 
   links_service:
     build:
@@ -46,10 +50,12 @@ services:
       - POSTGRES_HOST=db
     depends_on:
       - db
+    networks:
+      - portfolio_network
 
 volumes:
   postgres_data:
 
 networks:
-  default:
+  portfolio_network:
     name: portfolio_network
