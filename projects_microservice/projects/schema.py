@@ -6,7 +6,6 @@ class ProjectType(DjangoObjectType):
     class Meta:
         model = Project
 
-
 # UserType definition
 class UserType(DjangoObjectType):
     class Meta:
