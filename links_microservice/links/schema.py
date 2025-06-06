@@ -11,6 +11,30 @@ class UserType(DjangoObjectType):
     class Meta:
         model = User
 
+class LinkOrderInput(graphene.InputObjectType):
+    id = graphene.Int(required=True)
+    order = graphene.Int(required=True)
+
+class ReorderLinks(graphene.Mutation):
+    class Arguments:
+        orders = graphene.List(LinkOrderInput, required=True)
+
+    ok = graphene.Boolean()
+    updated_count = graphene.Int()
+
+    def mutate(self, info, orders):
+        updated = 0
+        for item in orders:
+            try:
+                link = Link.objects.get(pk=item.id)
+                link.order = item.order
+                link.save()
+                updated += 1
+            except Link.DoesNotExist:
+                continue
+
+        return ReorderLinks(ok=True, updated_count=updated)
+
 class Query(graphene.ObjectType):
     all_link_by_user_id = graphene.List(LinkType, user_id=graphene.Int(required=True))
     all_link_by_user_name = graphene.List(LinkType, user_name=graphene.String(required=True))
@@ -88,8 +112,73 @@ class CreateUser(graphene.Mutation):
         user.save()
         return CreateUser(user=user)
 
+class UpdateLink(graphene.Mutation):
+    class Arguments:
+        id = graphene.Int(required=True)
+        title = graphene.String()
+        url = graphene.String()
+        icon = graphene.String()
+        category = graphene.String()
+        order = graphene.Int()
+        is_active = graphene.Boolean()
+
+    link = graphene.Field(LinkType)
+
+    def mutate(self, info, id, title=None, url=None, icon=None, category=None, order=None, is_active=None):
+        try:
+            link = Link.objects.get(pk=id)
+        except Link.DoesNotExist:
+            raise Exception("Link not found")
+
+        if title is not None:
+            link.title = title
+        if url is not None:
+            link.url = url
+        if icon is not None:
+            link.icon = icon
+        if category is not None:
+            link.category = category
+        if order is not None:
+            link.order = order
+        if is_active is not None:
+            link.is_active = is_active
+
+        link.save()
+        return UpdateLink(link=link)
+
+class DeleteLink(graphene.Mutation):
+    class Arguments:
+        id = graphene.Int(required=True)
+
+    ok = graphene.Boolean()
+    message = graphene.String()
+
+    def mutate(self, info, id):
+        try:
+            link = Link.objects.get(pk=id)
+            link.delete()
+            return DeleteLink(ok=True, message="Link deleted successfully.")
+        except Link.DoesNotExist:
+            return DeleteLink(ok=False, message="Link not found.")
+class DeleteLink(graphene.Mutation):
+    class Arguments:
+        id = graphene.Int(required=True)
+
+    ok = graphene.Boolean()
+    message = graphene.String()
+
+    def mutate(self, info, id):
+        try:
+            link = Link.objects.get(pk=id)
+            link.delete()
+            return DeleteLink(ok=True, message="Link deleted successfully.")
+        except Link.DoesNotExist:
+            return DeleteLink(ok=False, message="Link not found.")
 class Mutation(graphene.ObjectType):
     create_link = CreateLink.Field()
     create_user = CreateUser.Field()
+    update_link = UpdateLink.Field()
+    delete_link = DeleteLink.Field()
+    reorder_links = ReorderLinks.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
